@@ -16,30 +16,9 @@
 
 package org.springframework.beans.factory.annotation;
 
-import java.beans.PropertyDescriptor;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
-
 import org.springframework.aot.generate.AccessControl;
 import org.springframework.aot.generate.GeneratedClass;
 import org.springframework.aot.generate.GeneratedMethod;
@@ -51,29 +30,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyValues;
 import org.springframework.beans.TypeConverter;
-import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.InjectionPoint;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.UnsatisfiedDependencyException;
-import org.springframework.beans.factory.aot.AutowiredArgumentsCodeGenerator;
-import org.springframework.beans.factory.aot.AutowiredFieldValueResolver;
-import org.springframework.beans.factory.aot.AutowiredMethodArgumentsResolver;
-import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
-import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
-import org.springframework.beans.factory.aot.BeanRegistrationCode;
-import org.springframework.beans.factory.aot.CodeWarnings;
+import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.aot.*;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.beans.factory.config.SmartInstantiationAwareBeanPostProcessor;
-import org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory;
-import org.springframework.beans.factory.support.AutowireCandidateResolver;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.beans.factory.support.LookupOverride;
-import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
-import org.springframework.beans.factory.support.RegisteredBean;
-import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.beans.factory.support.*;
 import org.springframework.core.BridgeMethodResolver;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.Ordered;
@@ -86,12 +48,14 @@ import org.springframework.core.type.MethodMetadata;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.javapoet.ClassName;
 import org.springframework.javapoet.CodeBlock;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
+import org.springframework.util.*;
+
+import java.beans.PropertyDescriptor;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link org.springframework.beans.factory.config.BeanPostProcessor BeanPostProcessor}
@@ -277,15 +241,24 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 	@Override
 	public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
 		// Register externally managed config members on bean definition.
+		// 在bean定义上注册外部管理的配置成员。
 		findInjectionMetadata(beanName, beanType, beanDefinition);
+		/* 附加注释：调用findInjectionMetadata方法来查找并注册bean的注入元数据，这是为了确保所有标记了@Autowired等注解的字段和方法都被正确识别并注册 */
 
 		// Use opportunity to clear caches which are not needed after singleton instantiation.
 		// The injectionMetadataCache itself is left intact since it cannot be reliably
 		// reconstructed in terms of externally managed config members otherwise.
+		// 利用这个机会清除单例实例化后不再需要的缓存。
+		// 保留injectionMetadataCache本身，因为就外部管理的配置成员而言，它无法可靠地重建。
 		if (beanDefinition.isSingleton()) {
+			/* 附加注释：对于单例bean，我们可以清除一些缓存以释放内存，因为单例bean只会被实例化一次 */
 			this.candidateConstructorsCache.remove(beanType);
+			/* 附加注释：移除该bean类型的候选构造函数缓存，因为单例bean实例化后不再需要这些构造函数信息 */
+
 			// With actual lookup overrides, keep it intact along with bean definition.
+			// 对于有实际查找方法重写的情况，与bean定义一起保持完整。
 			if (!beanDefinition.hasMethodOverrides()) {
+				/* 附加注释：只有当bean定义没有方法重写时才移除lookupMethodsChecked缓存，因为有方法重写的bean在运行时可能仍需要这些信息 */
 				this.lookupMethodsChecked.remove(beanName);
 			}
 		}
@@ -323,10 +296,23 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		}
 		return null;
 	}
-
+	/**
+	 * Find injection metadata for the specified bean.
+	 * 查找指定bean的注入元数据。
+	 */
 	private InjectionMetadata findInjectionMetadata(String beanName, Class<?> beanType, RootBeanDefinition beanDefinition) {
+		/* 附加注释：beanName是要处理的bean的名称，在依赖注入过程中用于标识和查找bean */
+		/* 附加注释：beanType是bean的类型，用于反射查找需要注入的字段和方法 */
+		/* 附加注释：beanDefinition包含bean的完整定义信息，用于注册和检查配置成员 */
+
+		// 调用findAutowiringMetadata方法查找bean的自动装配元数据
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+		/* 附加注释：这里调用findAutowiringMetadata方法来获取bean的注入元数据，该方法会查找所有标记了@Autowired等注解的字段和方法，并将它们封装成InjectionMetadata对象 */
+
+		// 检查并注册配置成员到bean定义中
 		metadata.checkConfigMembers(beanDefinition);
+		/* 附加注释：调用checkConfigMembers方法将找到的注入点注册到bean定义中，这样Spring可以在后续的bean生命周期中正确处理这些注入点 */
+
 		return metadata;
 	}
 
@@ -523,67 +509,111 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		}
 	}
 
+	/**
+	 * Find autowiring metadata for the specified bean instance by bean name or type.
+	 * 查找指定bean实例的自动装配元数据，通过bean名称或类型。
+	 * @param beanName the name of the bean
+	 * @param clazz the target class to look for annotations
+	 * @param pvs the property values to register autowired dependencies before they get applied
+	 */
 	private InjectionMetadata findAutowiringMetadata(String beanName, Class<?> clazz, @Nullable PropertyValues pvs) {
 		// Fall back to class name as cache key, for backwards compatibility with custom callers.
+		// 回退到类名作为缓存键，为了向后兼容自定义调用者。
 		String cacheKey = (StringUtils.hasLength(beanName) ? beanName : clazz.getName());
+		/* 附加注释：cacheKey用于在缓存中查找和存储InjectionMetadata，优先使用beanName，如果为空则使用类名 */
+
 		// Quick check on the concurrent map first, with minimal locking.
+		// 首先在并发Map上进行快速检查，使用最小的锁定。
 		InjectionMetadata metadata = this.injectionMetadataCache.get(cacheKey);
+		/* 附加注释：从缓存中获取注入元数据，避免重复构建，提高性能 */
+
 		if (InjectionMetadata.needsRefresh(metadata, clazz)) {
+			/* 附加注释：当元数据为null或者元数据的类与当前类不匹配时，需要刷新元数据 */
 			synchronized (this.injectionMetadataCache) {
+				/* 附加注释：使用同步块确保线程安全，防止多线程同时构建相同的元数据 */
 				metadata = this.injectionMetadataCache.get(cacheKey);
 				if (InjectionMetadata.needsRefresh(metadata, clazz)) {
+					/* 附加注释：双重检查锁定模式，确保在获取锁后仍然需要刷新 */
 					if (metadata != null) {
 						metadata.clear(pvs);
+						/* 附加注释：清除旧的元数据，避免内存泄漏，同时处理属性值 */
 					}
 					metadata = buildAutowiringMetadata(clazz);
+					/* 附加注释：构建新的自动装配元数据，分析类中的字段和方法上的自动装配注解 */
 					this.injectionMetadataCache.put(cacheKey, metadata);
+					/* 附加注释：将新构建的元数据放入缓存，供后续使用 */
 				}
 			}
 		}
 		return metadata;
 	}
 
+	/**
+	 * Build autowiring metadata for the specified class.
+	 * 为指定的类构建自动装配元数据。
+	 * @param clazz the class to analyze
+	 * @return InjectionMetadata instance, possibly empty but never {@code null}
+	 */
 	private InjectionMetadata buildAutowiringMetadata(Class<?> clazz) {
 		if (!AnnotationUtils.isCandidateClass(clazz, this.autowiredAnnotationTypes)) {
+			/* 附加注释：快速检查类是否包含任何自动装配注解，如果不包含则直接返回空元数据，避免不必要的反射操作 */
 			return InjectionMetadata.EMPTY;
 		}
 
 		final List<InjectionMetadata.InjectedElement> elements = new ArrayList<>();
+		/* 附加注释：用于收集所有需要注入的元素（字段和方法），最终用于构建InjectionMetadata */
 		Class<?> targetClass = clazz;
+		/* 附加注释：从当前类开始，逐级向上遍历类层次结构，确保捕获所有继承的注入点 */
 
 		do {
 			final List<InjectionMetadata.InjectedElement> fieldElements = new ArrayList<>();
+			/* 附加注释：存储当前类中所有需要自动装配的字段元素 */
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
+				/* 附加注释：遍历当前类的所有字段，不包括继承的字段，检查是否需要自动装配 */
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
+				/* 附加注释：查找字段上的自动装配注解，如@Autowired、@Value等，返回合并后的注解信息 */
 				if (ann != null) {
 					if (Modifier.isStatic(field.getModifiers())) {
+						/* 附加注释：自动装配不支持静态字段，因为静态字段属于类而非实例 */
 						if (logger.isInfoEnabled()) {
 							logger.info("Autowired annotation is not supported on static fields: " + field);
 						}
 						return;
 					}
 					boolean required = determineRequiredStatus(ann);
+					/* 附加注释：确定该注入是否为必需的，通常基于注解的required属性，如@Autowired(required=false) */
 					fieldElements.add(new AutowiredFieldElement(field, required));
+					/* 附加注释：创建字段注入元素并添加到集合中，后续会用于实际的依赖注入 */
 				}
 			});
 
 			final List<InjectionMetadata.InjectedElement> methodElements = new ArrayList<>();
+			/* 附加注释：存储当前类中所有需要自动装配的方法元素 */
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
+				/* 附加注释：遍历当前类的所有方法，不包括继承的方法，检查是否需要自动装配 */
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
+				/* 附加注释：处理桥接方法，在泛型场景下确保找到原始方法，避免重复注入 */
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
+					/* 附加注释：如果不是可见性桥接方法对，则跳过，防止处理不必要的合成方法 */
 					return;
 				}
 				MergedAnnotation<?> ann = findAutowiredAnnotation(bridgedMethod);
+				/* 附加注释：查找方法上的自动装配注解，使用桥接方法确保注解被正确识别 */
 				if (ann != null && method.equals(ClassUtils.getMostSpecificMethod(method, clazz))) {
+					/* 附加注释：确保只处理最具体的方法实现，避免在继承层次中重复注入 */
 					if (Modifier.isStatic(method.getModifiers())) {
+						/* 附加注释：自动装配不支持静态方法，因为静态方法属于类而非实例 */
 						if (logger.isInfoEnabled()) {
 							logger.info("Autowired annotation is not supported on static methods: " + method);
 						}
 						return;
 					}
 					if (method.getParameterCount() == 0) {
+						/* 附加注释：检查方法是否有参数，无参方法通常不需要自动装配 */
 						if (method.getDeclaringClass().isRecord()) {
+							/* 附加注释：特殊处理Record类，忽略其访问器方法上的注解，因为这些可能来自紧凑构造函数参数 */
 							// Annotations on the compact constructor arguments made available on accessors, ignoring.
+							// 紧凑构造函数参数上的注解在访问器上可用，忽略。
 							return;
 						}
 						if (logger.isInfoEnabled()) {
@@ -592,18 +622,26 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 						}
 					}
 					boolean required = determineRequiredStatus(ann);
+					/* 附加注释：确定该注入是否为必需的，与字段注入类似 */
 					PropertyDescriptor pd = BeanUtils.findPropertyForMethod(bridgedMethod, clazz);
+					/* 附加注释：尝试将方法解析为JavaBean属性，支持setter注入模式 */
 					methodElements.add(new AutowiredMethodElement(method, required, pd));
+					/* 附加注释：创建方法注入元素并添加到集合中，后续会用于实际的依赖注入 */
 				}
 			});
 
 			elements.addAll(0, sortMethodElements(methodElements, targetClass));
+			/* 附加注释：对方法元素进行排序并添加到总元素列表的前面，确保方法注入在字段注入之前执行 */
 			elements.addAll(0, fieldElements);
+			/* 附加注释：将字段元素添加到总元素列表的前面，使得执行顺序为：父类字段->父类方法->子类字段->子类方法 */
 			targetClass = targetClass.getSuperclass();
+			/* 附加注释：移动到父类，继续处理继承链上的注入点 */
 		}
 		while (targetClass != null && targetClass != Object.class);
+		/* 附加注释：循环直到处理完整个类层次结构，但不包括Object类 */
 
 		return InjectionMetadata.forElements(elements, clazz);
+		/* 附加注释：根据收集的所有注入元素创建最终的InjectionMetadata对象，用于后续实际执行依赖注入 */
 	}
 
 	private @Nullable MergedAnnotation<?> findAutowiredAnnotation(AccessibleObject ao) {

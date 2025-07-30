@@ -1,0 +1,76 @@
+@startuml
+interface BeanFactory
+interface ApplicationContext
+interface ConfigurableApplicationContext
+interface WebApplicationContext
+interface ConfigurableWebApplicationContext
+interface ReactiveWebApplicationContext
+interface ConfigurableReactiveWebApplicationContext
+
+abstract class AbstractApplicationContext
+abstract class AbstractRefreshableApplicationContext
+abstract class AbstractRefreshableConfigApplicationContext
+abstract class AbstractXmlApplicationContext
+abstract class GenericApplicationContext
+
+class ClassPathXmlApplicationContext
+class FileSystemXmlApplicationContext
+class XmlWebApplicationContext
+class AnnotationConfigApplicationContext
+class AnnotationConfigWebApplicationContext
+class GenericWebApplicationContext
+class StaticApplicationContext
+class GenericXmlApplicationContext
+class ResourceAdapterApplicationContext
+class StaticWebApplicationContext
+
+' Spring Boot 特有的 ApplicationContext
+class AnnotationConfigServletWebServerApplicationContext
+class AnnotationConfigReactiveWebServerApplicationContext
+class ServletWebServerApplicationContext
+class ReactiveWebServerApplicationContext
+
+BeanFactory <|-- ApplicationContext
+ApplicationContext <|-- ConfigurableApplicationContext
+ApplicationContext <|-- WebApplicationContext
+WebApplicationContext <|-- ConfigurableWebApplicationContext
+ApplicationContext <|-- ReactiveWebApplicationContext
+ReactiveWebApplicationContext <|-- ConfigurableReactiveWebApplicationContext
+
+ConfigurableApplicationContext <|.. AbstractApplicationContext
+AbstractApplicationContext <|-- AbstractRefreshableApplicationContext
+AbstractApplicationContext <|-- GenericApplicationContext
+
+AbstractRefreshableApplicationContext <|-- AbstractRefreshableConfigApplicationContext
+AbstractRefreshableConfigApplicationContext <|-- AbstractXmlApplicationContext
+
+AbstractXmlApplicationContext <|-- ClassPathXmlApplicationContext
+AbstractXmlApplicationContext <|-- FileSystemXmlApplicationContext
+AbstractXmlApplicationContext <|-- XmlWebApplicationContext
+
+GenericApplicationContext <|-- AnnotationConfigApplicationContext
+GenericApplicationContext <|-- StaticApplicationContext
+GenericApplicationContext <|-- GenericWebApplicationContext
+GenericApplicationContext <|-- GenericXmlApplicationContext
+GenericApplicationContext <|-- ResourceAdapterApplicationContext
+
+ConfigurableWebApplicationContext <|.. XmlWebApplicationContext
+ConfigurableWebApplicationContext <|.. AnnotationConfigWebApplicationContext
+ConfigurableWebApplicationContext <|.. GenericWebApplicationContext
+ConfigurableWebApplicationContext <|.. StaticWebApplicationContext
+
+' Spring Boot 继承关系
+GenericApplicationContext <|-- ServletWebServerApplicationContext
+GenericApplicationContext <|-- ReactiveWebServerApplicationContext
+ServletWebServerApplicationContext <|-- AnnotationConfigServletWebServerApplicationContext
+ReactiveWebServerApplicationContext <|-- AnnotationConfigReactiveWebServerApplicationContext
+
+note bottom of AnnotationConfigServletWebServerApplicationContext
+  Spring Boot 中用于 Servlet Web 应用的主要 ApplicationContext
+end note
+
+note bottom of AnnotationConfigReactiveWebServerApplicationContext
+  Spring Boot 中用于 Reactive Web 应用的主要 ApplicationContext
+end note
+@enduml
+

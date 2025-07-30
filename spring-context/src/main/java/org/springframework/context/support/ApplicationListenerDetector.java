@@ -16,19 +16,18 @@
 
 package org.springframework.context.support;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jspecify.annotations.Nullable;
-
 import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ApplicationEventMulticaster;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code BeanPostProcessor} that detects beans which implement the {@code ApplicationListener}
@@ -73,19 +72,27 @@ class ApplicationListenerDetector implements DestructionAwareBeanPostProcessor, 
 	public Object postProcessAfterInitialization(Object bean, String beanName) {
 		if (bean instanceof ApplicationListener<?> applicationListener) {
 			// potentially not detected as a listener by getBeanNamesForType retrieval
+			// 可能无法通过getBeanNamesForType检索被检测为监听器
+			/* 附加注释：从singletonNames中获取bean的单例标志，用于判断该bean是否为单例 */
 			Boolean flag = this.singletonNames.get(beanName);
 			if (Boolean.TRUE.equals(flag)) {
 				// singleton bean (top-level or inner): register on the fly
+				// 单例bean（顶级或内部）：即时注册
+				/* 附加注释：对于单例bean，直接将其作为ApplicationListener添加到ApplicationContext中，确保它能接收事件 */
 				this.applicationContext.addApplicationListener(applicationListener);
 			}
 			else if (Boolean.FALSE.equals(flag)) {
+				/* 附加注释：处理非单例的内部bean场景，这种bean不能可靠地接收事件 */
 				if (logger.isWarnEnabled() && !this.applicationContext.containsBean(beanName)) {
 					// inner bean with other scope - can't reliably process events
+					// 具有其他作用域的内部bean - 无法可靠地处理事件
+					/* 附加注释：记录警告日志，提示用户内部非单例bean实现ApplicationListener接口但无法被容器可靠地用于事件广播 */
 					logger.warn("Inner bean '" + beanName + "' implements ApplicationListener interface " +
 							"but is not reachable for event multicasting by its containing ApplicationContext " +
 							"because it does not have singleton scope. Only top-level listener beans are allowed " +
 							"to be of non-singleton scope.");
 				}
+				/* 附加注释：从singletonNames缓存中移除该bean名称，因为非单例内部bean不需要被跟踪 */
 				this.singletonNames.remove(beanName);
 			}
 		}

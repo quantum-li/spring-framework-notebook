@@ -16,16 +16,7 @@
 
 package org.springframework.beans.factory.support;
 
-import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-
 import org.jspecify.annotations.Nullable;
-
 import org.springframework.beans.BeanMetadataAttributeAccessor;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -38,6 +29,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Constructor;
+import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * Base class for concrete, full-fledged {@link BeanDefinition} classes,
@@ -1131,16 +1126,26 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * Set whether this bean definition is 'synthetic', that is, not defined
 	 * by the application itself (for example, an infrastructure bean such
 	 * as a helper for auto-proxying, created through {@code <aop:config>}).
+	 *
+	 * 设置这个bean定义是否是'合成的'，也就是说，不是由应用程序本身定义的
+	 * （例如，一个基础设施bean，如自动代理的辅助bean，通过{@code <aop:config>}创建）。
 	 */
 	public void setSynthetic(boolean synthetic) {
+		/* 附加注释：synthetic参数表示是否将bean标记为合成bean，合成bean通常是由Spring框架内部创建的，
+		   而非用户在应用程序中显式定义的，例如AOP、事务等功能自动生成的基础设施bean */
 		this.synthetic = synthetic;
 	}
 
 	/**
 	 * Return whether this bean definition is 'synthetic', that is,
 	 * not defined by the application itself.
+	 *
+	 * 返回这个bean定义是否是'合成的'，也就是说，
+	 * 不是由应用程序本身定义的。
 	 */
 	public boolean isSynthetic() {
+		/* 附加注释：synthetic标志表示该Bean是否为合成Bean，合成Bean通常是由框架内部创建的，
+		   而非用户在应用程序中显式定义的，例如通过AOP自动代理创建的基础设施Bean */
 		return this.synthetic;
 	}
 

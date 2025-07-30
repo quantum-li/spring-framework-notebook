@@ -16,12 +16,11 @@
 
 package org.springframework.core.env;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.util.StringUtils;
+
 import java.util.Collection;
 import java.util.List;
-
-import org.jspecify.annotations.Nullable;
-
-import org.springframework.util.StringUtils;
 
 /**
  * Abstract base class for {@link PropertySource} implementations backed by command line
@@ -256,6 +255,15 @@ public abstract class CommandLinePropertySource<T> extends EnumerablePropertySou
 	}
 
 	/**
+	 * 此实现首先检查指定的名称是否为特殊的
+	 * {@linkplain #setNonOptionArgsPropertyName(String) "非选项参数"属性}，
+	 * 如果是，则委托给抽象的{@link #getNonOptionArgs()}方法。如果是
+	 * 且非选项参数集合为空，此方法返回
+	 * {@code null}。如果不为空，它返回所有非选项
+	 * 参数的逗号分隔字符串。否则，此方法委托给并返回抽象的
+	 * {@link #getOptionValues(String)}方法的结果的逗号分隔字符串，
+	 * 或者如果没有这样的选项值，则返回{@code null}。
+	 *
 	 * This implementation first checks to see if the name specified is the special
 	 * {@linkplain #setNonOptionArgsPropertyName(String) "non-option arguments" property},
 	 * and if so delegates to the abstract {@link #getNonOptionArgs()} method. If so

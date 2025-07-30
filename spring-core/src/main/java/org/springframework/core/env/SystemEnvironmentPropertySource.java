@@ -16,12 +16,11 @@
 
 package org.springframework.core.env;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.util.Assert;
+
 import java.util.Locale;
 import java.util.Map;
-
-import org.jspecify.annotations.Nullable;
-
-import org.springframework.util.Assert;
 
 /**
  * Specialization of {@link MapPropertySource} designed for use with
@@ -103,6 +102,9 @@ public class SystemEnvironmentPropertySource extends MapPropertySource {
 	 * Check to see if this property source contains a property with the given name, or
 	 * any underscore / uppercase variation thereof. Return the resolved name if one is
 	 * found or otherwise the original name. Never returns {@code null}.
+	 *
+	 * 检查此属性源是否包含具有给定名称或其任何下划线/大写变体的属性。
+	 * 如果找到则返回解析后的名称，否则返回原始名称。永远不会返回{@code null}。
 	 */
 	protected final String resolvePropertyName(String name) {
 		Assert.notNull(name, "Property name must not be null");

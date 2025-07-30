@@ -16,6 +16,9 @@
 
 package org.springframework.util;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Contract;
+
 import java.io.Closeable;
 import java.io.Externalizable;
 import java.io.File;
@@ -51,10 +54,6 @@ import java.util.StringJoiner;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Pattern;
-
-import org.jspecify.annotations.Nullable;
-
-import org.springframework.lang.Contract;
 
 /**
  * Miscellaneous {@code java.lang.Class} utility methods.
@@ -216,28 +215,48 @@ public abstract class ClassUtils {
 	 * ClassLoader isn't accessible)
 	 * @see Thread#getContextClassLoader()
 	 * @see ClassLoader#getSystemClassLoader()
+	 *
+	 * 返回要使用的默认ClassLoader：通常是线程上下文ClassLoader（如果可用）；
+	 * 如果不可用，将使用加载ClassUtils类的ClassLoader作为后备。
+	 * <p>如果您打算在明确偏好非空ClassLoader引用的场景中使用线程上下文ClassLoader，
+	 * 请调用此方法：例如，用于类路径资源加载（但不一定用于{@code Class.forName}，
+	 * 它也接受{@code null} ClassLoader引用）。
+	 * @return 默认的ClassLoader（仅当系统ClassLoader也无法访问时才为{@code null}）
 	 */
 	public static @Nullable ClassLoader getDefaultClassLoader() {
+		/* 附加注释：cl变量用于存储最终确定的类加载器，初始为null，后续会尝试多种方式获取 */
 		ClassLoader cl = null;
 		try {
+			/* 附加注释：首先尝试获取当前线程的上下文类加载器，这通常是最优先使用的，因为它能够加载应用特定的类 */
 			cl = Thread.currentThread().getContextClassLoader();
 		}
 		catch (Throwable ex) {
 			// Cannot access thread context ClassLoader - falling back...
+			// 无法访问线程上下文ClassLoader - 回退使用其他方式...
+			/* 附加注释：捕获所有异常，包括SecurityException等安全限制导致的异常，确保方法不会因为获取类加载器失败而中断 */
 		}
 		if (cl == null) {
 			// No thread context class loader -> use class loader of this class.
+			// 没有线程上下文类加载器 -> 使用此类的类加载器。
+			/* 附加注释：处理线程上下文类加载器不可用的场景，比如在某些受限环境或特殊线程中 */
+			/* 附加注释：使用加载ClassUtils类的类加载器作为备选方案，通常这是应用类加载器 */
 			cl = ClassUtils.class.getClassLoader();
 			if (cl == null) {
 				// getClassLoader() returning null indicates the bootstrap ClassLoader
+				// getClassLoader()返回null表示这是引导类加载器
+				/* 附加注释：处理ClassUtils类由引导类加载器加载的场景，此时getClassLoader()返回null */
 				try {
+					/* 附加注释：尝试获取系统类加载器作为最后的备选方案，它是应用类加载器的父类加载器之一 */
 					cl = ClassLoader.getSystemClassLoader();
 				}
 				catch (Throwable ex) {
 					// Cannot access system ClassLoader - oh well, maybe the caller can live with null...
+					// 无法访问系统ClassLoader - 好吧，也许调用者可以接受null...
+					/* 附加注释：捕获所有异常，在极端情况下（如安全管理器限制）即使系统类加载器也无法获取，此时只能返回null */
 				}
 			}
 		}
+		/* 附加注释：返回按优先级尝试获取的类加载器，调用者需要处理可能为null的情况 */
 		return cl;
 	}
 

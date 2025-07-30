@@ -1,0 +1,333 @@
+@startuml Spring Extension Points Class Hierarchy
+
+title Spring 扩展点类继承实现关系图
+
+!define INTERFACE_COLOR #E3F2FD
+!define ABSTRACT_COLOR #FFF3E0
+!define CONCRETE_COLOR #E8F5E8
+!define SPRING_COLOR #FFEBEE
+
+' ========== 核心接口层 ==========
+package "核心接口层" as CoreInterfaces {
+    interface Aware <<interface>> INTERFACE_COLOR
+    interface Ordered <<interface>> INTERFACE_COLOR
+    interface PriorityOrdered <<interface>> INTERFACE_COLOR
+
+    PriorityOrdered --|> Ordered : extends
+}
+
+' ========== Bean处理器接口层 ==========
+package "Bean处理器接口" as BeanProcessorInterfaces {
+    interface BeanPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessBeforeInitialization(Object, String): Object
+        +postProcessAfterInitialization(Object, String): Object
+    }
+
+    interface InstantiationAwareBeanPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessBeforeInstantiation(Class, String): Object
+        +postProcessAfterInstantiation(Object, String): boolean
+        +postProcessProperties(PropertyValues, Object, String): PropertyValues
+    }
+
+    interface SmartInstantiationAwareBeanPostProcessor <<interface>> INTERFACE_COLOR {
+        +predictBeanType(Class, String): Class
+        +determineCandidateConstructors(Class, String): Constructor[]
+        +getEarlyBeanReference(Object, String): Object
+    }
+
+    interface MergedBeanDefinitionPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessMergedBeanDefinition(RootBeanDefinition, Class, String): void
+        +resetBeanDefinition(String): void
+    }
+
+    interface DestructionAwareBeanPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessBeforeDestruction(Object, String): void
+        +requiresDestruction(Object): boolean
+    }
+
+    InstantiationAwareBeanPostProcessor --|> BeanPostProcessor : extends
+    SmartInstantiationAwareBeanPostProcessor --|> InstantiationAwareBeanPostProcessor : extends
+    DestructionAwareBeanPostProcessor --|> BeanPostProcessor : extends
+}
+
+' ========== 工厂处理器接口层 ==========
+package "工厂处理器接口" as FactoryProcessorInterfaces {
+    interface BeanFactoryPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessBeanFactory(ConfigurableListableBeanFactory): void
+    }
+
+    interface BeanDefinitionRegistryPostProcessor <<interface>> INTERFACE_COLOR {
+        +postProcessBeanDefinitionRegistry(BeanDefinitionRegistry): void
+    }
+
+    BeanDefinitionRegistryPostProcessor --|> BeanFactoryPostProcessor : extends
+}
+
+' ========== Aware接口层 ==========
+package "Aware接口" as AwareInterfaces {
+    interface BeanNameAware <<interface>> INTERFACE_COLOR {
+        +setBeanName(String): void
+    }
+
+    interface BeanClassLoaderAware <<interface>> INTERFACE_COLOR {
+        +setBeanClassLoader(ClassLoader): void
+    }
+
+    interface BeanFactoryAware <<interface>> INTERFACE_COLOR {
+        +setBeanFactory(BeanFactory): void
+    }
+
+    interface EnvironmentAware <<interface>> INTERFACE_COLOR {
+        +setEnvironment(Environment): void
+    }
+
+    interface EmbeddedValueResolverAware <<interface>> INTERFACE_COLOR {
+        +setEmbeddedValueResolver(StringValueResolver): void
+    }
+
+    interface ResourceLoaderAware <<interface>> INTERFACE_COLOR {
+        +setResourceLoader(ResourceLoader): void
+    }
+
+    interface ApplicationEventPublisherAware <<interface>> INTERFACE_COLOR {
+        +setApplicationEventPublisher(ApplicationEventPublisher): void
+    }
+
+    interface MessageSourceAware <<interface>> INTERFACE_COLOR {
+        +setMessageSource(MessageSource): void
+    }
+
+    interface ApplicationContextAware <<interface>> INTERFACE_COLOR {
+        +setApplicationContext(ApplicationContext): void
+    }
+
+    interface LoadTimeWeaverAware <<interface>> INTERFACE_COLOR {
+        +setLoadTimeWeaver(LoadTimeWeaver): void
+    }
+
+    BeanNameAware --|> Aware : extends
+    BeanClassLoaderAware --|> Aware : extends
+    BeanFactoryAware --|> Aware : extends
+    EnvironmentAware --|> Aware : extends
+    EmbeddedValueResolverAware --|> Aware : extends
+    ResourceLoaderAware --|> Aware : extends
+    ApplicationEventPublisherAware --|> Aware : extends
+    MessageSourceAware --|> Aware : extends
+    ApplicationContextAware --|> Aware : extends
+    LoadTimeWeaverAware --|> Aware : extends
+}
+
+' ========== 生命周期接口层 ==========
+package "生命周期接口" as LifecycleInterfaces {
+    interface InitializingBean <<interface>> INTERFACE_COLOR {
+        +afterPropertiesSet(): void
+    }
+
+    interface DisposableBean <<interface>> INTERFACE_COLOR {
+        +destroy(): void
+    }
+
+    interface Lifecycle <<interface>> INTERFACE_COLOR {
+        +start(): void
+        +stop(): void
+        +isRunning(): boolean
+    }
+
+    interface Phased <<interface>> INTERFACE_COLOR {
+        +getPhase(): int
+    }
+
+    interface SmartLifecycle <<interface>> INTERFACE_COLOR {
+        +isAutoStartup(): boolean
+        +stop(Runnable): void
+    }
+
+    interface SmartInitializingSingleton <<interface>> INTERFACE_COLOR {
+        +afterSingletonsInstantiated(): void
+    }
+
+    SmartLifecycle --|> Lifecycle : extends
+    SmartLifecycle --|> Phased : extends
+}
+
+' ========== 特殊接口层 ==========
+package "特殊接口" as SpecialInterfaces {
+    interface FactoryBean <<interface>> INTERFACE_COLOR {
+        +getObject(): T
+        +getObjectType(): Class
+        +isSingleton(): boolean
+    }
+
+    interface SmartFactoryBean <<interface>> INTERFACE_COLOR {
+        +isPrototype(): boolean
+        +isEagerInit(): boolean
+    }
+
+    interface BeanFactoryInitializer <<interface>> INTERFACE_COLOR {
+        +initialize(ConfigurableListableBeanFactory): void
+    }
+
+    interface ApplicationListener <<interface>> INTERFACE_COLOR {
+        +onApplicationEvent(E): void
+    }
+
+    SmartFactoryBean --|> FactoryBean : extends
+}
+
+' ========== Spring内置实现类 ==========
+package "Spring内置实现类" as SpringImplementations {
+    abstract class InstantiationAwareBeanPostProcessorAdapter <<abstract>> ABSTRACT_COLOR {
+        +postProcessBeforeInstantiation(): Object
+        +postProcessAfterInstantiation(): boolean
+        +postProcessProperties(): PropertyValues
+    }
+
+    class AutowiredAnnotationBeanPostProcessor <<class>> SPRING_COLOR {
+        -autowiredAnnotationTypes: Set<Class>
+        +postProcessMergedBeanDefinition(): void
+        +postProcessProperties(): PropertyValues
+    }
+
+    class CommonAnnotationBeanPostProcessor <<class>> SPRING_COLOR {
+        +postProcessBeforeInitialization(): Object
+        +postProcessBeforeDestruction(): void
+    }
+
+    class RequiredAnnotationBeanPostProcessor <<class>> SPRING_COLOR {
+        +postProcessProperties(): PropertyValues
+    }
+
+    class ApplicationContextAwareProcessor <<class>> SPRING_COLOR {
+        +postProcessBeforeInitialization(): Object
+    }
+
+    class ConfigurationClassPostProcessor <<class>> SPRING_COLOR {
+        +postProcessBeanDefinitionRegistry(): void
+        +postProcessBeanFactory(): void
+    }
+
+    class PropertySourcesPlaceholderConfigurer <<class>> SPRING_COLOR {
+        +postProcessBeanFactory(): void
+    }
+
+    class EventListenerMethodProcessor <<class>> SPRING_COLOR {
+        +postProcessBeanFactory(): void
+        +afterSingletonsInstantiated(): void
+    }
+
+    class DefaultEventListenerFactory <<class>> SPRING_COLOR {
+        +createApplicationListener(): ApplicationListener
+    }
+
+    ' 继承关系
+    InstantiationAwareBeanPostProcessorAdapter ..|> SmartInstantiationAwareBeanPostProcessor : implements
+    InstantiationAwareBeanPostProcessorAdapter ..|> MergedBeanDefinitionPostProcessor : implements
+
+    AutowiredAnnotationBeanPostProcessor --|> InstantiationAwareBeanPostProcessorAdapter : extends
+    AutowiredAnnotationBeanPostProcessor ..|> BeanFactoryAware : implements
+
+    CommonAnnotationBeanPostProcessor --|> InstantiationAwareBeanPostProcessorAdapter : extends
+    CommonAnnotationBeanPostProcessor ..|> DestructionAwareBeanPostProcessor : implements
+    CommonAnnotationBeanPostProcessor ..|> BeanFactoryAware : implements
+
+    RequiredAnnotationBeanPostProcessor --|> InstantiationAwareBeanPostProcessorAdapter : extends
+
+    ApplicationContextAwareProcessor ..|> BeanPostProcessor : implements
+
+    ConfigurationClassPostProcessor ..|> BeanDefinitionRegistryPostProcessor : implements
+    ConfigurationClassPostProcessor ..|> PriorityOrdered : implements
+    ConfigurationClassPostProcessor ..|> ResourceLoaderAware : implements
+    ConfigurationClassPostProcessor ..|> BeanClassLoaderAware : implements
+    ConfigurationClassPostProcessor ..|> EnvironmentAware : implements
+
+    PropertySourcesPlaceholderConfigurer ..|> BeanFactoryPostProcessor : implements
+    PropertySourcesPlaceholderConfigurer ..|> EnvironmentAware : implements
+
+    EventListenerMethodProcessor ..|> BeanFactoryPostProcessor : implements
+    EventListenerMethodProcessor ..|> SmartInitializingSingleton : implements
+
+    DefaultEventListenerFactory ..|> ApplicationListener : implements
+}
+
+' ========== 用户自定义实现示例 ==========
+package "用户自定义实现示例" as UserImplementations {
+    class CustomBeanPostProcessor <<class>> CONCRETE_COLOR {
+        +postProcessBeforeInitialization(): Object
+        +postProcessAfterInitialization(): Object
+    }
+
+    class CustomBeanFactoryPostProcessor <<class>> CONCRETE_COLOR {
+        +postProcessBeanFactory(): void
+    }
+
+    class CustomApplicationContextAware <<class>> CONCRETE_COLOR {
+        +setApplicationContext(): void
+    }
+
+    class CustomInitializingBean <<class>> CONCRETE_COLOR {
+        +afterPropertiesSet(): void
+    }
+
+    class CustomFactoryBean <<class>> CONCRETE_COLOR {
+        +getObject(): MyObject
+        +getObjectType(): Class
+        +isSingleton(): boolean
+    }
+
+    class CustomSmartLifecycle <<class>> CONCRETE_COLOR {
+        +start(): void
+        +stop(): void
+        +isRunning(): boolean
+        +isAutoStartup(): boolean
+        +getPhase(): int
+    }
+
+    ' 实现关系
+    CustomBeanPostProcessor ..|> BeanPostProcessor : implements
+    CustomBeanFactoryPostProcessor ..|> BeanFactoryPostProcessor : implements
+    CustomApplicationContextAware ..|> ApplicationContextAware : implements
+    CustomInitializingBean ..|> InitializingBean : implements
+    CustomFactoryBean ..|> FactoryBean : implements
+    CustomSmartLifecycle ..|> SmartLifecycle : implements
+}
+
+' ========== 组合关系示例 ==========
+package "复杂实现示例" as ComplexImplementations {
+    class ComplexProcessor <<class>> CONCRETE_COLOR {
+        +postProcessBeforeInitialization(): Object
+        +postProcessAfterInitialization(): Object
+        +postProcessProperties(): PropertyValues
+        +setBeanFactory(): void
+        +setApplicationContext(): void
+        +afterPropertiesSet(): void
+        +getOrder(): int
+    }
+
+    ComplexProcessor ..|> BeanPostProcessor : implements
+    ComplexProcessor ..|> InstantiationAwareBeanPostProcessor : implements
+    ComplexProcessor ..|> BeanFactoryAware : implements
+    ComplexProcessor ..|> ApplicationContextAware : implements
+    ComplexProcessor ..|> InitializingBean : implements
+    ComplexProcessor ..|> Ordered : implements
+}
+
+' 添加说明注释
+note top of CoreInterfaces : 核心标记接口\n提供基础能力
+
+note top of BeanProcessorInterfaces : Bean处理器接口\n处理Bean的创建和初始化
+
+note top of FactoryProcessorInterfaces : 工厂处理器接口\n处理BeanFactory的配置
+
+note top of AwareInterfaces : 感知接口\n注入Spring框架组件
+
+note top of LifecycleInterfaces : 生命周期接口\n控制Bean的启动停止
+
+note top of SpecialInterfaces : 特殊功能接口\n提供特定能力
+
+note top of SpringImplementations : Spring框架内置实现\n处理注解和配置
+
+note top of UserImplementations : 用户自定义实现\n业务扩展示例
+
+note top of ComplexImplementations : 复杂实现示例\n多接口组合使用
+
+@enduml

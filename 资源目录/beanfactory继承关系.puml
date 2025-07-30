@@ -1,0 +1,152 @@
+@startuml
+
+interface BeanFactory {
+  +getBean(name: String): Object
+  +getBean(name: String, requiredType: Class<T>): T
+  +containsBean(name: String): boolean
+  +isSingleton(name: String): boolean
+  +isPrototype(name: String): boolean
+  +isTypeMatch(name: String, targetType: Class<?>): boolean
+  +getType(name: String): Class<?>
+  +getAliases(name: String): String[]
+}
+
+interface HierarchicalBeanFactory {
+  +getParentBeanFactory(): BeanFactory
+  +containsLocalBean(name: String): boolean
+}
+
+interface ListableBeanFactory {
+  +containsBeanDefinition(beanName: String): boolean
+  +getBeanDefinitionCount(): int
+  +getBeanDefinitionNames(): String[]
+  +getBeanNamesForType(type: Class<?>): String[]
+  +getBeansOfType(type: Class<T>): Map<String, T>
+}
+
+interface ConfigurableBeanFactory {
+  +setParentBeanFactory(parentBeanFactory: BeanFactory): void
+  +setBeanClassLoader(beanClassLoader: ClassLoader): void
+  +addBeanPostProcessor(beanPostProcessor: BeanPostProcessor): void
+  +registerScope(scopeName: String, scope: Scope): void
+}
+
+interface AutowireCapableBeanFactory {
+  +createBean(beanClass: Class<T>): T
+  +autowireBean(existingBean: Object): void
+  +configureBean(existingBean: Object, beanName: String): Object
+  +resolveDependency(descriptor: DependencyDescriptor, beanName: String): Object
+}
+
+interface ConfigurableListableBeanFactory {
+  +ignoreDependencyType(type: Class<?>): void
+  +ignoreDependencyInterface(ifc: Class<?>): void
+  +registerResolvableDependency(dependencyType: Class<?>, autowiredValue: Object): void
+  +preInstantiateSingletons(): void
+}
+
+abstract class AbstractBeanFactory {
+  #transformedBeanName(name: String): String
+  #getBean(name: String, requiredType: Class<T>, args: Object[]): T
+  #doGetBean(name: String, requiredType: Class<T>, args: Object[]): T
+}
+
+abstract class AbstractAutowireCapableBeanFactory {
+  #createBean(beanName: String, mbd: RootBeanDefinition, args: Object[]): Object
+  #doCreateBean(beanName: String, mbd: RootBeanDefinition, args: Object[]): Object
+  #populateBean(beanName: String, mbd: RootBeanDefinition, bw: BeanWrapper): void
+  #initializeBean(beanName: String, bean: Object, mbd: RootBeanDefinition): Object
+}
+
+class DefaultListableBeanFactory {
+  -beanDefinitionMap: Map<String, BeanDefinition>
+  +registerBeanDefinition(beanName: String, beanDefinition: BeanDefinition): void
+  +getBeanDefinition(beanName: String): BeanDefinition
+}
+
+class XmlBeanFactory {
+  +XmlBeanFactory(resource: Resource)
+  +XmlBeanFactory(resource: Resource, parentBeanFactory: BeanFactory)
+}
+
+class GenericApplicationContext {
+  -beanFactory: DefaultListableBeanFactory
+  +registerBeanDefinition(beanName: String, beanDefinition: BeanDefinition): void
+  +refresh(): void
+}
+
+class GenericXmlApplicationContext {
+  +GenericXmlApplicationContext()
+  +GenericXmlApplicationContext(resourceLocations: String...)
+  +load(resourceLocations: String...): void
+}
+
+class AnnotationConfigApplicationContext {
+  +AnnotationConfigApplicationContext()
+  +AnnotationConfigApplicationContext(componentClasses: Class<?>...)
+  +register(componentClasses: Class<?>...): void
+  +scan(basePackages: String...): void
+}
+
+class ClassPathXmlApplicationContext {
+  +ClassPathXmlApplicationContext(configLocations: String...)
+  +ClassPathXmlApplicationContext(configLocations: String[], refresh: boolean)
+}
+
+class FileSystemXmlApplicationContext {
+  +FileSystemXmlApplicationContext(configLocations: String...)
+  +FileSystemXmlApplicationContext(configLocations: String[], refresh: boolean)
+}
+
+class XmlWebApplicationContext {
+  +setConfigLocations(configLocations: String[]): void
+  +getConfigLocations(): String[]
+}
+
+class AnnotationConfigWebApplicationContext {
+  +setConfigLocations(configLocations: String[]): void
+  +register(componentClasses: Class<?>...): void
+  +scan(basePackages: String...): void
+}
+
+' Spring Boot 特有的
+class AnnotationConfigServletWebServerApplicationContext {
+  +AnnotationConfigServletWebServerApplicationContext()
+  +AnnotationConfigServletWebServerApplicationContext(componentClasses: Class<?>...)
+}
+
+class AnnotationConfigReactiveWebServerApplicationContext {
+  +AnnotationConfigReactiveWebServerApplicationContext()
+  +AnnotationConfigReactiveWebServerApplicationContext(componentClasses: Class<?>...)
+}
+
+' 继承关系
+BeanFactory <|-- HierarchicalBeanFactory
+BeanFactory <|-- ListableBeanFactory
+HierarchicalBeanFactory <|-- ConfigurableBeanFactory
+ListableBeanFactory <|-- ConfigurableListableBeanFactory
+ConfigurableBeanFactory <|-- ConfigurableListableBeanFactory
+BeanFactory <|-- AutowireCapableBeanFactory
+AutowireCapableBeanFactory <|-- ConfigurableListableBeanFactory
+
+ConfigurableBeanFactory <|.. AbstractBeanFactory
+AbstractBeanFactory <|-- AbstractAutowireCapableBeanFactory
+AutowireCapableBeanFactory <|.. AbstractAutowireCapableBeanFactory
+AbstractAutowireCapableBeanFactory <|-- DefaultListableBeanFactory
+ConfigurableListableBeanFactory <|.. DefaultListableBeanFactory
+
+DefaultListableBeanFactory <|-- XmlBeanFactory
+DefaultListableBeanFactory <-- GenericApplicationContext : contains >
+
+GenericApplicationContext <|-- GenericXmlApplicationContext
+GenericApplicationContext <|-- AnnotationConfigApplicationContext
+
+' Web 应用上下文
+GenericApplicationContext <|-- XmlWebApplicationContext
+GenericApplicationContext <|-- AnnotationConfigWebApplicationContext
+
+' Spring Boot 特有的
+AnnotationConfigApplicationContext <|-- AnnotationConfigServletWebServerApplicationContext
+AnnotationConfigApplicationContext <|-- AnnotationConfigReactiveWebServerApplicationContext
+
+@enduml

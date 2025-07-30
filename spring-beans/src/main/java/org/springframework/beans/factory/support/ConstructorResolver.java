@@ -16,30 +16,8 @@
 
 package org.springframework.beans.factory.support;
 
-import java.beans.ConstructorProperties;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Executable;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
 import org.apache.commons.logging.Log;
 import org.jspecify.annotations.Nullable;
-
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
@@ -76,6 +54,27 @@ import org.springframework.util.MethodInvoker;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.beans.ConstructorProperties;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Delegate for resolving constructors and factory methods.
@@ -124,12 +123,21 @@ class ConstructorResolver {
 	/**
 	 * "autowire constructor" (with constructor arguments by type) behavior.
 	 * Also applied if explicit constructor argument values are specified.
+	 *
+	 * "自动装配构造函数"（通过类型匹配构造函数参数）行为。
+	 * 如果指定了显式构造函数参数值，也会应用此行为。
+	 *
 	 * @param beanName the name of the bean
+	 * bean的名称
 	 * @param mbd the merged bean definition for the bean
+	 * bean的合并bean定义
 	 * @param chosenCtors chosen candidate constructors (or {@code null} if none)
+	 * 选定的候选构造函数（如果没有则为{@code null}）
 	 * @param explicitArgs argument values passed in programmatically via the getBean method,
 	 * or {@code null} if none (-> use constructor argument values from bean definition)
+	 * 通过getBean方法以编程方式传入的参数值，如果没有则为{@code null}（-> 使用bean定义中的构造函数参数值）
 	 * @return a BeanWrapper for the new instance
+	 * 新实例的BeanWrapper
 	 */
 	@SuppressWarnings("NullAway") // Dataflow analysis limitation
 	public BeanWrapper autowireConstructor(String beanName, RootBeanDefinition mbd,
@@ -151,6 +159,7 @@ class ConstructorResolver {
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
+					// 找到了缓存的构造函数...
 					argsToUse = mbd.resolvedConstructorArguments;
 					if (argsToUse == null) {
 						argsToResolve = mbd.preparedConstructorArguments;
@@ -164,6 +173,7 @@ class ConstructorResolver {
 
 		if (constructorToUse == null || argsToUse == null) {
 			// Take specified constructors, if any.
+			// 如果有指定的构造函数，则使用它们。
 			Constructor<?>[] candidates = chosenCtors;
 			if (candidates == null) {
 				Class<?> beanClass = mbd.getBeanClass();
@@ -192,6 +202,7 @@ class ConstructorResolver {
 			}
 
 			// Need to resolve the constructor.
+			// 需要解析构造函数。
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
@@ -217,6 +228,8 @@ class ConstructorResolver {
 				if (constructorToUse != null && argsToUse != null && argsToUse.length > parameterCount) {
 					// Already found greedy constructor that can be satisfied ->
 					// do not look any further, there are only less greedy constructors left.
+					// 已经找到了可以满足的贪婪构造函数 ->
+					// 不要再继续查找，剩下的只有不那么贪婪的构造函数。
 					break;
 				}
 				if (parameterCount < minNrOfArgs) {
@@ -245,6 +258,7 @@ class ConstructorResolver {
 							logger.trace("Ignoring constructor [" + candidate + "] of bean '" + beanName + "': " + ex);
 						}
 						// Swallow and try next constructor.
+						// 忽略异常并尝试下一个构造函数。
 						if (causes == null) {
 							causes = new ArrayDeque<>(1);
 						}
@@ -254,6 +268,7 @@ class ConstructorResolver {
 				}
 				else {
 					// Explicit arguments given -> arguments length must match exactly.
+					// 给定显式参数 -> 参数长度必须完全匹配。
 					if (parameterCount != explicitArgs.length) {
 						continue;
 					}
@@ -263,6 +278,7 @@ class ConstructorResolver {
 				int typeDiffWeight = (mbd.isLenientConstructorResolution() ?
 						argsHolder.getTypeDifferenceWeight(paramTypes) : argsHolder.getAssignabilityWeight(paramTypes));
 				// Choose this constructor if it represents the closest match.
+				// 如果这个构造函数代表最接近的匹配，则选择它。
 				if (typeDiffWeight < minTypeDiffWeight) {
 					constructorToUse = candidate;
 					argsHolderToUse = argsHolder;

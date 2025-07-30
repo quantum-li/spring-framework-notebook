@@ -16,6 +16,27 @@
 
 package org.springframework.beans;
 
+import kotlin.jvm.JvmClassMappingKt;
+import kotlin.jvm.internal.DefaultConstructorMarker;
+import kotlin.reflect.KClass;
+import kotlin.reflect.KFunction;
+import kotlin.reflect.KParameter;
+import kotlin.reflect.full.KClasses;
+import kotlin.reflect.jvm.KCallablesJvm;
+import kotlin.reflect.jvm.ReflectJvmMapping;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.KotlinDetector;
+import org.springframework.core.MethodParameter;
+import org.springframework.core.ParameterNameDiscoverer;
+import org.springframework.core.ResolvableType;
+import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
+
 import java.beans.ConstructorProperties;
 import java.beans.PropertyDescriptor;
 import java.beans.PropertyEditor;
@@ -31,28 +52,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import kotlin.jvm.JvmClassMappingKt;
-import kotlin.jvm.internal.DefaultConstructorMarker;
-import kotlin.reflect.KClass;
-import kotlin.reflect.KFunction;
-import kotlin.reflect.KParameter;
-import kotlin.reflect.full.KClasses;
-import kotlin.reflect.jvm.KCallablesJvm;
-import kotlin.reflect.jvm.ReflectJvmMapping;
-import org.jspecify.annotations.Nullable;
-
-import org.springframework.core.DefaultParameterNameDiscoverer;
-import org.springframework.core.KotlinDetector;
-import org.springframework.core.MethodParameter;
-import org.springframework.core.ParameterNameDiscoverer;
-import org.springframework.core.ResolvableType;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.ConcurrentReferenceHashMap;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * Static convenience methods for JavaBeans: for instantiating beans,
@@ -171,15 +170,16 @@ public abstract class BeanUtils {
 	}
 
 	/**
-	 * Convenience method to instantiate a class using the given constructor.
+	 * 使用给定的构造函数实例化类的便捷方法。
+	 * <p>注意，如果给定的构造函数不可访问（即非公共的），此方法会尝试将其设置为可访问，并支持带有可选参数和默认值的Kotlin类。
+	 * <p>Convenience method to instantiate a class using the given constructor.
 	 * <p>Note that this method tries to set the constructor accessible if given a
 	 * non-accessible (that is, non-public) constructor, and supports Kotlin classes
 	 * with optional parameters and default values.
-	 * @param ctor the constructor to instantiate
-	 * @param args the constructor arguments to apply (use {@code null} for an unspecified
-	 * parameter, Kotlin optional parameters and Java primitive types are supported)
-	 * @return the new instance
-	 * @throws BeanInstantiationException if the bean cannot be instantiated
+	 * @param ctor 要实例化的构造函数
+	 * @param args 要应用的构造函数参数（对于未指定的参数使用{@code null}，支持Kotlin可选参数和Java基本类型）
+	 * @return 新的实例
+	 * @throws BeanInstantiationException 如果无法实例化bean
 	 * @see Constructor#newInstance
 	 */
 	public static <T> T instantiateClass(Constructor<T> ctor, @Nullable Object... args) throws BeanInstantiationException {

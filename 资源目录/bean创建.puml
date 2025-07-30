@@ -1,0 +1,136 @@
+@startuml Spring Bean Creation Main Flow
+
+title Spring Bean 创建主要流程
+
+participant "容器启动" as Container
+participant "Bean获取" as BeanGet
+participant "Bean创建" as BeanCreate
+participant "实例化" as Instantiate
+participant "属性注入" as Property
+participant "初始化" as Initialize
+participant "缓存系统" as Cache
+
+== 1. 容器预实例化 ==
+Container -> Container: 遍历所有bean定义
+note right: 获取beanDefinitionNames副本
+
+loop 每个非抽象单例bean
+    Container -> BeanGet: 触发bean获取
+end
+
+Container -> Container: 等待后台初始化完成
+Container -> Container: 执行SmartInitializingSingleton回调
+
+== 2. Bean获取流程 ==
+BeanGet -> BeanGet: 转换bean名称
+note right: 处理别名和&前缀
+
+BeanGet -> Cache: 检查singletonObjects
+note right: 一级缓存：完全初始化的单例
+
+alt 一级缓存命中
+    BeanGet -> BeanGet: 处理FactoryBean
+    BeanGet --> Container: 返回bean
+else 一级缓存未命中
+    BeanGet -> Cache: 检查earlySingletonObjects
+    note right: 二级缓存：早期暴露的单例
+
+    alt 二级缓存命中
+        BeanGet --> Container: 返回早期引用
+    else 需要创建新bean
+        BeanGet -> BeanGet: 处理depends-on依赖
+        BeanGet -> BeanCreate: 创建bean实例
+    end
+end
+
+== 3. Bean创建流程 ==
+BeanCreate -> Cache: beforeSingletonCreation()
+note right: 添加到singletonsCurrentlyInCreation
+
+BeanCreate -> BeanCreate: 检查InstantiationAwareBeanPostProcessor
+note right: 可能直接返回代理对象
+
+alt 返回代理对象
+    BeanCreate -> Cache: afterSingletonCreation()
+    BeanCreate --> BeanGet: 返回代理
+else 执行完整创建
+    BeanCreate -> Instantiate: 实例化bean
+end
+
+== 4. 实例化阶段 ==
+Instantiate -> Instantiate: 选择实例化策略
+alt 构造函数自动装配
+    Instantiate -> Instantiate: 解析构造函数参数
+    Instantiate -> Instantiate: 通过构造函数创建
+else 默认构造函数
+    Instantiate -> Instantiate: 通过无参构造函数创建
+end
+
+Instantiate -> Instantiate: 应用MergedBeanDefinitionPostProcessor
+note right: 收集@Autowired注解信息
+
+== 5. 循环依赖处理 ==
+alt 需要提前暴露单例
+    Instantiate -> Cache: addSingletonFactory()
+    note right: 添加到singletonFactories（三级缓存）
+    note right: 存储ObjectFactory用于获取早期引用
+end
+
+== 6. 属性注入阶段 ==
+Instantiate -> Property: 填充bean属性
+
+Property -> Property: 应用InstantiationAwareBeanPostProcessor
+note right: postProcessAfterInstantiation()
+
+alt 配置了自动装配模式
+    Property -> Property: 按名称或类型自动装配
+    note right: 查找匹配的bean并注入
+end
+
+Property -> Property: 应用InstantiationAwareBeanPostProcessor
+note right: postProcessProperties() - 处理@Autowired
+
+Property -> Property: 应用配置的属性值
+
+== 7. 初始化阶段 ==
+Property -> Initialize: 初始化bean
+
+Initialize -> Initialize: 调用Aware接口方法
+note right: BeanNameAware、BeanFactoryAware等
+
+Initialize -> Initialize: 应用BeanPostProcessor
+note right: postProcessBeforeInitialization()
+
+Initialize -> Initialize: 调用初始化方法
+note right: @PostConstruct、InitializingBean.afterPropertiesSet()
+
+Initialize -> Initialize: 应用BeanPostProcessor
+note right: postProcessAfterInitialization() - 可能创建AOP代理
+
+== 8. 完成创建 ==
+Initialize -> Cache: 检查早期引用一致性
+alt 早期引用与当前对象不同
+    Initialize -> Initialize: 使用早期引用
+end
+
+Initialize -> Cache: addSingleton()
+note right: 添加到singletonObjects（一级缓存）
+note right: 从singletonFactories和earlySingletonObjects移除
+
+Initialize -> Cache: afterSingletonCreation()
+note right: 从singletonsCurrentlyInCreation移除
+
+Initialize -> Initialize: 注册销毁回调
+
+Initialize --> Container: 返回完全初始化的bean
+
+== 缓存系统说明 ==
+note over Cache
+**三级缓存系统：**
+• singletonObjects：一级缓存，存储完全初始化的单例
+• earlySingletonObjects：二级缓存，存储早期暴露的单例
+• singletonFactories：三级缓存，存储ObjectFactory
+• singletonsCurrentlyInCreation：正在创建的单例集合
+end note
+
+@enduml

@@ -16,24 +16,6 @@
 
 package org.springframework.context.support;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.crac.CheckpointException;
@@ -41,21 +23,19 @@ import org.crac.Core;
 import org.crac.RestoreException;
 import org.crac.management.CRaCMXBean;
 import org.jspecify.annotations.Nullable;
-
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.ApplicationContextException;
-import org.springframework.context.Lifecycle;
-import org.springframework.context.LifecycleProcessor;
-import org.springframework.context.Phased;
-import org.springframework.context.SmartLifecycle;
+import org.springframework.context.*;
 import org.springframework.core.NativeDetector;
 import org.springframework.core.SpringProperties;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Spring's default implementation of the {@link LifecycleProcessor} strategy.
@@ -292,26 +272,43 @@ public class DefaultLifecycleProcessor implements LifecycleProcessor, BeanFactor
 	}
 
 	@Override
+	/**
+	 * Refresh the lifecycle processor.
+	 * <p>Starts all registered beans that implement {@link Lifecycle} and are
+	 * configured for auto-startup. This allows for early startup prior to
+	 * ApplicationContext completion, as opposed to waiting for the {@link #start()}
+	 * method to be called on ApplicationContext refresh completion.
+	 *
+	 * 刷新生命周期处理器。
+	 * <p>启动所有注册的实现了{@link Lifecycle}接口并配置为自动启动的bean。这允许在ApplicationContext完成之前进行早期启动，
+	 * 而不是等待ApplicationContext刷新完成时调用{@link #start()}方法。
+	 */
 	public void onRefresh() {
 		if (checkpointOnRefresh) {
+			/* 附加注释：检查是否需要在刷新时创建检查点，如果需要，则创建检查点并恢复，通常用于应用程序状态保存和恢复场景 */
 			checkpointOnRefresh = false;
 			new CracDelegate().checkpointRestore();
 		}
 		if (exitOnRefresh) {
+			/* 附加注释：检查是否需要在刷新后退出应用程序，如果需要，则立即终止JVM，通常用于特定的应用程序生命周期管理场景 */
 			Runtime.getRuntime().halt(0);
 		}
 
-		this.stoppedBeans = null;
+		this.stoppedBeans = null; /* 附加注释：清除已停止的bean集合，准备重新启动所有bean */
 		try {
+			/* 附加注释：启动所有配置为自动启动的bean，true参数表示只启动自动启动的bean */
 			startBeans(true);
 		}
 		catch (ApplicationContextException ex) {
+			/* 附加注释：如果在启动过程中有bean启动失败，需要停止已经启动的bean，确保系统状态一致性 */
 			// Some bean failed to auto-start within context refresh:
 			// stop already started beans on context refresh failure.
+			// 在上下文刷新过程中某些bean无法自动启动：
+			// 在上下文刷新失败时停止已经启动的bean。
 			stopBeans();
 			throw ex;
 		}
-		this.running = true;
+		this.running = true; /* 附加注释：标记生命周期处理器为运行状态，表示所有bean已成功启动 */
 	}
 
 	@Override

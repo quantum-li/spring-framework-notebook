@@ -16,6 +16,9 @@
 
 package org.springframework.util;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Contract;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -26,10 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import org.jspecify.annotations.Nullable;
-
-import org.springframework.lang.Contract;
 
 /**
  * Simple utility class for working with the reflection API and handling
@@ -192,10 +191,12 @@ public abstract class ReflectionUtils {
 	}
 
 	/**
+	 * 使给定的构造函数可访问，如有必要，显式设置其可访问性。
+	 * 仅在实际必要时才调用{@code setAccessible(true)}方法，以避免不必要的冲突。
 	 * Make the given constructor accessible, explicitly setting it accessible
 	 * if necessary. The {@code setAccessible(true)} method is only called
 	 * when actually necessary, to avoid unnecessary conflicts.
-	 * @param ctor the constructor to make accessible
+	 * @param ctor 要使其可访问的构造函数
 	 * @see java.lang.reflect.Constructor#setAccessible
 	 */
 	@SuppressWarnings("deprecation")
