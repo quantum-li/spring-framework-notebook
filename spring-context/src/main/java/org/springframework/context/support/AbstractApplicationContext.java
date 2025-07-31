@@ -566,10 +566,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
 				// Invoke factory processors registered as beans  the context.
-				// 调用在上下文中注册为bean的工厂处理器。
+				// 调用在上下文中注册为bean的工厂处理器。可以注册新的beanDefination，也可以修改现有的beanDefination
 				invokeBeanFactoryPostProcessors(beanFactory);
 				// Register bean processors that intercept bean creation.
-				// 注册拦截bean创建的bean处理器。
+				// 按照优先级顺序注册拦截bean创建的bean处理器。（先add到list的先执行）
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
@@ -661,7 +661,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// Store pre-refresh ApplicationListeners...
 		// 存储刷新前的应用程序监听器...
-		/* 附加注释：这段代码处理ApplicationListener的初始化，确保在容器刷新过程中能正确处理事件 */
+		/* 附加注释：保留第一次启动，也就是初始状态的applicationListeners，以后每次刷新都恢复到初始状态。 */
 		if (this.earlyApplicationListeners == null) {
 			/* 附加注释：首次刷新时，保存原始监听器集合，用于后续可能的重新刷新操作 */
 			this.earlyApplicationListeners = new LinkedHashSet<>(this.applicationListeners);
@@ -717,7 +717,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// Configure the bean factory with context callbacks.
 		// 使用上下文回调配置bean工厂。
-		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this)); /* 附加注释：添加处理器使Bean能感知ApplicationContext，自动注入ApplicationContext相关的依赖 */
+		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this)); /* 附加注释：添加处理器使Bean能感知ApplicationContext，postProcessBeforeInitialization 阶段自动注入ApplicationContext相关的依赖 */
 		/* 附加注释：以下代码块用于忽略特定Aware接口的自动装配，因为这些接口已经在上面一行由ApplicationContextAwareProcessor处理了，避免重复注入 */
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
@@ -739,13 +739,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// Register early post-processor for detecting inner beans as ApplicationListeners.
 		// 注册早期后处理器，用于检测内部bean作为ApplicationListeners。
-		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this)); /* 附加注释：添加监听器检测器，自动将实现ApplicationListener接口的Bean注册为事件监听器 */
+		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this)); /* 附加注释：添加监听器检测器，postProcessAfterInitialization阶段自动将实现ApplicationListener接口的Bean注册为事件监听器 */
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.
 		// 如果找到LoadTimeWeaver，则检测并准备织入。
 		/* 附加注释：以下分支处理AOP加载时织入的场景，仅在非原生镜像模式下且存在LoadTimeWeaver时执行 */
 		if (!NativeDetector.inNativeImage() && beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
-			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory)); /* 附加注释：添加处理器支持LoadTimeWeaver感知，用于AspectJ加载时织入 */
+			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory)); /* 附加注释：添加处理器支持LoadTimeWeaver感知，用于postProcessBeforeInitialization阶段AspectJ加载时织入 */
 			// Set a temporary ClassLoader for type matching.
 			// 为类型匹配设置临时ClassLoader。
 			beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader())); /* 附加注释：设置临时类加载器，用于类型匹配而不触发类的完全加载，提高性能并避免早期类加载问题 */
@@ -973,7 +973,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@SuppressWarnings("unchecked")
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
 		// Initialize bootstrap executor for this context.
-		// 为此上下文初始化引导执行器。
+		// spring 6.2 以后支持background init，注册并行创建bean使用的线程池。如果没有则回退到串行创建。
 		if (beanFactory.containsBean(BOOTSTRAP_EXECUTOR_BEAN_NAME) &&
 				beanFactory.isTypeMatch(BOOTSTRAP_EXECUTOR_BEAN_NAME, Executor.class)) {
 			/* 附加注释：当用户定义了名为"bootstrapExecutor"的执行器Bean时，将其设置为BeanFactory的引导执行器，用于支持Bean初始化过程中的异步操作，提高启动性能 */

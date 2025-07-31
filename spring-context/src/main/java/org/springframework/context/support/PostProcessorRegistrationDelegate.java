@@ -359,7 +359,7 @@ final class PostProcessorRegistrationDelegate {
 		// moving it to the end of the processor chain (for picking up proxies etc).
 		// 重新注册用于检测内部bean作为ApplicationListeners的后处理器，
 		// 将其移动到处理器链的末尾（用于拾取代理等）。
-		/* 附加注释：添加ApplicationListenerDetector处理器，放在处理链最后，用于检测和注册ApplicationListener类型的Bean，确保能处理被代理的监听器 */
+		/* 附加注释：添加ApplicationListenerDetector处理器，放在处理链最后，因为处理链可以对bean创建代理对象，放到最后一个确保注册的监听器是最终被代理之后的对象 */
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
 	}
 
